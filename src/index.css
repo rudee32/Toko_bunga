@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-cream text-dark font-sans antialiased;
+    overflow-x: hidden;
+  }
+  ::selection {
+    background: rgba(173, 142, 112, 0.4);
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #e8e2da;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #ad8e70;
+    border-radius: 10px;
+  }
+  .font-serif {
+    font-family: "Cormorant Garamond", serif;
+  }
+}
+
+@layer components {
+  .container-x {
+    @apply max-w-7xl mx-auto px-5 md:px-8;
+  }
+  .glass {
+    @apply bg-white/70 backdrop-blur-md border border-dark/10;
+  }
+  .input-glass {
+    @apply bg-white/70 border border-dark/10 rounded-xl px-4 py-3 text-sm text-dark placeholder:text-dark/40 outline-none focus:border-primary/60 transition-colors;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-dark transition-all duration-300 hover:bg-primary-light hover:shadow-glow;
+  }
+  .section-title {
+    @apply text-3xl md:text-5xl font-semibold;
+  }
+  .section-sub {
+    @apply text-dark/60 max-w-2xl mx-auto;
+  }
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary via-primary-light to-gold bg-clip-text text-transparent;
+  }
+}
+
+@layer utilities {
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+  .preserve-3d {
+    transform-style: preserve-3d;
+  }
+  .backface-hidden {
+    backface-visibility: hidden;
+  }
+  .text-shadow {
+    text-shadow: 0 4px 30px rgba(255, 255, 255, 0.8);
+  }
+}
