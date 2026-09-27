@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { AnimatePresence, motion } from "framer-motion";
-import { X, Plus, Minus, Trash2, ShoppingCart, MessageCircle } from "lucide-react";
+import {
+  Minus,
+  Plus,
+  Trash2,
+  ShoppingCart,
+  MessageCircle,
+} from "lucide-react";
+import Drawer from "./Drawer";
 import { useCartStore, useCartTotals } from "../store/cartStore";
 import { formatRupiah } from "../data/products";
 import { buildOrderMessage, openWhatsApp } from "../utils/constants";
@@ -15,191 +21,174 @@ const initialForm = {
   tanggal: "",
 };
 
+const FIELDS = [
+  { key: "ucapan", label: "Ucapan untuk penerima", type: "text" },
+  { key: "name", label: "Nama pengirim", type: "text" },
+  { key: "alamat", label: "Alamat tujuan / Plus Codes", type: "text" },
+  { key: "phone", label: "No. penerima", type: "tel" },
+  { key: "ukuran", label: "Ukuran bunga (Standar / Besar)", type: "text" },
+  { key: "tanggal", label: "Tanggal & jam pengiriman", type: "datetime-local" },
+];
+
+function Stepper({ qty, onDecrement, onIncrement, name }) {
+  const btn =
+    "grid h-9 w-9 place-items-center rounded-full text-ink-muted transition-colors hover:bg-accent-soft hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+  return (
+    <div className="inline-flex items-center gap-1 rounded-full border border-line bg-surface px-1.5 py-1">
+      <button type="button" className={btn} onClick={onDecrement} aria-label={`Kurangi jumlah ${name}`}>
+        <Minus className="h-4 w-4" />
+      </button>
+      <span className="w-6 text-center text-sm tabular-nums" aria-live="polite">
+        {qty}
+      </span>
+      <button type="button" className={btn} onClick={onIncrement} aria-label={`Tambah jumlah ${name}`}>
+        <Plus className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
+
 export default function CartDrawer() {
-  const { isOpen, close, items, increment, decrement, remove, clear } =
-    useCartStore();
+  const isOpen = useCartStore((s) => s.isOpen);
+  const close = useCartStore((s) => s.close);
+  const items = useCartStore((s) => s.items);
+  const increment = useCartStore((s) => s.increment);
+  const decrement = useCartStore((s) => s.decrement);
+  const remove = useCartStore((s) => s.remove);
   const { subtotal, totalItems } = useCartTotals();
+
   const [form, setForm] = useState(initialForm);
   const [showForm, setShowForm] = useState(false);
 
-  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+  const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
 
   const handleCheckout = () => {
-    const msg = buildOrderMessage(items, form);
-    openWhatsApp(msg);
+    openWhatsApp(buildOrderMessage(items, form));
     setForm(initialForm);
     setShowForm(false);
   };
 
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm"
-          onClick={close}
-        >
-          <motion.aside
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
-            transition={{ type: "spring", damping: 28, stiffness: 220 }}
-            onClick={(e) => e.stopPropagation()}
-            className="absolute right-0 top-0 bottom-0 w-full max-w-md bg-cream border-l border-dark/10 flex flex-col"
+  const footer =
+    items.length > 0 ? (
+      <div className="space-y-3">
+        <div className="flex items-baseline justify-between">
+          <span className="text-sm text-ink-muted">Subtotal</span>
+          <span className="font-serif text-2xl font-semibold text-accent tabular-nums">
+            {formatRupiah(subtotal)}
+          </span>
+        </div>
+        <p className="text-xs text-ink-muted">
+          Ongkir dan detail akhir dikonfirmasi lewat WhatsApp.
+        </p>
+
+        {!showForm ? (
+          <button
+            type="button"
+            onClick={() => setShowForm(true)}
+            className="btn-primary w-full"
           >
-            <div className="flex items-center justify-between p-5 border-b border-dark/10">
-              <h3 className="font-serif text-2xl font-semibold flex items-center gap-2">
-                <ShoppingCart className="w-6 h-6 text-primary" />
-                Keranjang
-                <span className="text-sm text-dark/50">({totalItems} item)</span>
-              </h3>
-              <button onClick={close} className="text-dark/70 hover:text-primary">
-                <X className="w-6 h-6" />
-              </button>
-            </div>
+            <MessageCircle className="h-5 w-5" />
+            Lanjutkan ke Checkout
+          </button>
+        ) : (
+          <div className="space-y-2">
+            {FIELDS.map((f) => (
+              <input
+                key={f.key}
+                type={f.type}
+                value={form[f.key]}
+                onChange={set(f.key)}
+                placeholder={f.label}
+                aria-label={f.label}
+                className="input w-full"
+              />
+            ))}
+            <button
+              type="button"
+              onClick={handleCheckout}
+              className="btn-primary mt-1 w-full"
+            >
+              <MessageCircle className="h-5 w-5" />
+              Pesan via WhatsApp
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              className="btn-ghost w-full"
+            >
+              Kembali
+            </button>
+          </div>
+        )}
+      </div>
+    ) : null;
 
-            <div className="flex-1 overflow-y-auto p-5 space-y-4">
-              {items.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center gap-4">
-                  <div className="w-20 h-20 rounded-full glass flex items-center justify-center">
-                    <ShoppingCart className="w-9 h-9 text-primary/50" />
-                  </div>
-                  <p className="text-dark/60">Keranjang masih kosong</p>
-                  <Link
-                    to="/menu"
-                    onClick={close}
-                    className="btn-primary"
+  return (
+    <Drawer
+      open={isOpen}
+      onClose={close}
+      title="Keranjang"
+      count={totalItems}
+      icon={ShoppingCart}
+      footer={footer}
+      labelId="cart-drawer-title"
+    >
+      {items.length === 0 ? (
+        <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
+          <div className="grid h-20 w-20 place-items-center rounded-full bg-surface-2">
+            <ShoppingCart className="h-9 w-9 text-accent/40" />
+          </div>
+          <p className="text-ink-muted">Keranjang masih kosong</p>
+          <Link to="/menu" onClick={close} className="btn-primary">
+            Jelajahi Katalog
+          </Link>
+        </div>
+      ) : (
+        <ul className="space-y-3">
+          {items.map((item) => (
+            <li key={item.id} className="card flex gap-3 p-3">
+              <img
+                src={item.img}
+                alt=""
+                width={80}
+                height={80}
+                loading="lazy"
+                decoding="async"
+                className="h-20 w-20 shrink-0 rounded-chip object-cover"
+              />
+              <div className="flex min-w-0 flex-1 flex-col">
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="text-sm font-medium leading-snug">
+                    {item.name}
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => remove(item.id)}
+                    aria-label={`Hapus ${item.name} dari keranjang`}
+                    className="-mr-1 shrink-0 rounded-chip p-2 text-ink-faint transition-colors hover:bg-surface-2 hover:text-danger"
                   >
-                    Jelajahi Katalog
-                  </Link>
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
-              ) : (
-                <>
-                  {items.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex gap-3 p-3 rounded-2xl glass"
-                    >
-                      <img
-                        src={item.img}
-                        alt={item.name}
-                        className="w-20 h-20 object-cover rounded-xl"
-                      />
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start">
-                          <h4 className="font-medium text-sm leading-snug pr-2">
-                            {item.name}
-                          </h4>
-                          <button
-                            onClick={() => remove(item.id)}
-                            className="text-dark/40 hover:text-red-400"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                        <p className="text-primary text-sm mt-1">
-                          {formatRupiah(item.price)}
-                        </p>
-                        <div className="flex items-center gap-3 mt-2">
-                          <div className="flex items-center gap-2 glass rounded-full px-2 py-1">
-                            <button
-                              onClick={() => decrement(item.id)}
-                              className="text-dark/70 hover:text-primary"
-                            >
-                              <Minus className="w-4 h-4" />
-                            </button>
-                            <span className="text-sm w-5 text-center">
-                              {item.qty}
-                            </span>
-                            <button
-                              onClick={() => increment(item.id)}
-                              className="text-dark/70 hover:text-primary"
-                            >
-                              <Plus className="w-4 h-4" />
-                            </button>
-                          </div>
-                          <span className="text-sm text-dark/60 ml-auto">
-                            {formatRupiah(item.total)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </>
-              )}
-            </div>
-
-            {items.length > 0 && (
-              <div className="border-t border-dark/10 p-5 space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-dark/70">Subtotal</span>
-                  <span className="font-serif text-2xl font-semibold text-primary">
-                    {formatRupiah(subtotal)}
+                <p className="mt-1 text-sm text-accent tabular-nums">
+                  {formatRupiah(item.price)}
+                </p>
+                <div className="mt-auto flex items-center gap-3 pt-2">
+                  <Stepper
+                    name={item.name}
+                    qty={item.qty}
+                    onDecrement={() => decrement(item.id)}
+                    onIncrement={() => increment(item.id)}
+                  />
+                  <span className="ml-auto text-sm font-semibold tabular-nums">
+                    {formatRupiah(item.total)}
                   </span>
                 </div>
-
-                {!showForm ? (
-                  <button
-                    onClick={() => setShowForm(true)}
-                    className="btn-primary w-full"
-                  >
-                    <MessageCircle className="w-5 h-5" />
-                    Lanjutkan ke Checkout
-                  </button>
-                ) : (
-                  <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
-                    <input
-                      value={form.ucapan}
-                      onChange={set("ucapan")}
-                      placeholder="Ucapan untuk penerima"
-                      className="input-glass w-full"
-                    />
-                    <input
-                      value={form.name}
-                      onChange={set("name")}
-                      placeholder="Nama pengirim"
-                      className="input-glass w-full"
-                    />
-                    <input
-                      value={form.alamat}
-                      onChange={set("alamat")}
-                      placeholder="Alamat tujuan / Plus Codes"
-                      className="input-glass w-full"
-                    />
-                    <input
-                      value={form.phone}
-                      onChange={set("phone")}
-                      placeholder="No. penerima"
-                      className="input-glass w-full"
-                    />
-                    <input
-                      value={form.ukuran}
-                      onChange={set("ukuran")}
-                      placeholder="Ukuran bunga (Standar / Besar)"
-                      className="input-glass w-full"
-                    />
-                    <input
-                      type="datetime-local"
-                      value={form.tanggal}
-                      onChange={set("tanggal")}
-                      className="input-glass w-full"
-                    />
-                    <button
-                      onClick={handleCheckout}
-                      className="btn-primary w-full"
-                    >
-                      <MessageCircle className="w-5 h-5" />
-                      Pesan via WhatsApp
-                    </button>
-                  </div>
-                )}
               </div>
-            )}
-          </motion.aside>
-        </motion.div>
+            </li>
+          ))}
+        </ul>
       )}
-    </AnimatePresence>
+    </Drawer>
   );
 }

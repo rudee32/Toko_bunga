@@ -1,28 +1,35 @@
 import { motion } from "framer-motion";
 
-export default function SectionHeading({ title, subtitle, light }) {
+/**
+ * Section heading. One rule, used everywhere: title, optional supporting line,
+ * nothing else. The old eyebrow + hairline-diamond divider repeated on every
+ * section read as filler and was removed rather than restyled.
+ */
+export default function SectionHeading({
+  title,
+  subtitle,
+  align = "center",
+}) {
+  const centred = align === "center";
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.6 }}
-      className="text-center mb-12"
+      initial={{ y: 16 }}
+      whileInView={{ y: 0 }}
+      viewport={{ once: true, margin: "-80px" }}
+      transition={{ duration: 0.5, ease: [0.22, 0.61, 0.36, 1] }}
+      className={`mb-10 md:mb-14 ${centred ? "mx-auto max-w-2xl text-center" : "max-w-2xl"}`}
     >
-      <span className="inline-block text-sm uppercase tracking-[0.3em] text-primary mb-3">
-        Sekar Floristt
-      </span>
-      <h2 className="section-title font-serif italic text-dark">
-        {title}
-      </h2>
+      <h2 className="section-title text-balance">{title}</h2>
       {subtitle && (
-        <p className="section-sub mt-4">{subtitle}</p>
+        <p
+          className={`mt-4 leading-relaxed ${
+            centred ? "mx-auto" : ""
+          } section-sub`}
+        >
+          {subtitle}
+        </p>
       )}
-      <div className="mt-5 flex items-center justify-center gap-2">
-        <div className="w-16 h-px bg-primary/60" />
-        <div className="w-2 h-2 rotate-45 bg-primary" />
-        <div className="w-16 h-px bg-primary/60" />
-      </div>
     </motion.div>
   );
 }

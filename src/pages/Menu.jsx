@@ -1,11 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { motion } from "framer-motion";
-import { Search, SlidersHorizontal } from "lucide-react";
+import { Search, SlidersHorizontal, X } from "lucide-react";
 import PageTransition from "../components/PageTransition";
+import Tilt from "../components/Tilt";
 import ProductCard from "../components/ProductCard";
 import SectionHeading from "../components/SectionHeading";
-import PetalRain from "../three/PetalRain";
 import { products, categories } from "../data/products";
 
 const sortOptions = [
@@ -18,22 +17,43 @@ const sortOptions = [
 export default function Menu() {
   const [params, setParams] = useSearchParams();
   const activeCat = params.get("kategori") || "semua";
-  const searchQuery = params.get("q") || "";
+  const urlQuery = params.get("q") || "";
   const [sort, setSort] = useState("default");
 
+  // The input is driven by local state and mirrored into the URL on a debounce,
+  // so typing stays responsive and Back does not walk through every keystroke.
+  const [draft, setDraft] = useState(urlQuery);
+  const dirty = useRef(false);
+  // Read at fire time, not from the closure: the effect only depends on `draft`,
+  // so a category change that happens mid-debounce would otherwise be clobbered
+  // by a stale `params`.
+  const paramsRef = useRef(params);
+  paramsRef.current = params;
+
+  useEffect(() => {
+    if (!dirty.current) setDraft(urlQuery);
+  }, [urlQuery]);
+
+  useEffect(() => {
+    if (draft === urlQuery) return;
+    const t = setTimeout(() => {
+      dirty.current = false;
+      const next = new URLSearchParams(paramsRef.current);
+      if (draft) next.set("q", draft);
+      else next.delete("q");
+      setParams(next, { replace: true });
+    }, 250);
+    return () => clearTimeout(t);
+  }, [draft, urlQuery, setParams]);
+
   const setCat = (cat) => {
-    const newParams = new URLSearchParams(params);
-    if (cat === "semua") newParams.delete("kategori");
-    else newParams.set("kategori", cat);
-    setParams(newParams);
+    const next = new URLSearchParams(params);
+    if (cat === "semua") next.delete("kategori");
+    else next.set("kategori", cat);
+    setParams(next, { replace: true });
   };
 
-  const setQuery = (q) => {
-    const newParams = new URLSearchParams(params);
-    if (q) newParams.set("q", q);
-    else newParams.delete("q");
-    setParams(newParams);
-  };
+  const clearAll = () => setParams(new URLSearchParams(), { replace: true });
 
   const filtered = useMemo(() => {
     let result = [...products];
@@ -43,8 +63,8 @@ export default function Menu() {
           p.category === activeCat || p.categoryLabels?.includes(activeCat)
       );
     }
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
+    if (urlQuery) {
+      const q = urlQuery.toLowerCase();
       result = result.filter(
         (p) =>
           p.name.toLowerCase().includes(q) ||
@@ -54,50 +74,79 @@ export default function Menu() {
     }
     switch (sort) {
       case "termurah":
-        result.sort((a, b) => a.price - b.price);
-        break;
+        return result.sort((a, b) => a.price - b.price);
       case "termahal":
-        result.sort((a, b) => b.price - a.price);
-        break;
+        return result.sort((a, b) => b.price - a.price);
       case "nama":
-        result.sort((a, b) => a.name.localeCompare(b.name));
-        break;
+        return result.sort((a, b) => a.name.localeCompare(b.name, "id"));
       default:
-        break;
+        return result;
     }
-    return result;
-  }, [activeCat, searchQuery, sort]);
+  }, [activeCat, urlQuery, sort]);
+
+  const filteredCount = filtered.length;
 
   return (
     <PageTransition>
-      <section className="relative pt-28 pb-20 min-h-screen">
-        <PetalRain count={10} />
+      <Tilt className="min-h-dvh pb-20 pt-28 md:pt-32">
         <div className="container-x">
           <SectionHeading
             title="Katalog Produk"
-            subtitle="Pilih rangkaian bunga favorit Anda. Tidak cocok? Silakan request sesuai keinginan."
+            subtitle="Pilih rangkaian yang paling sesuai, atau request penyesuaian warna dan tulisan sesuai kebutuhan."
           />
 
-          {/* Search + Sort */}
-          <div className="flex flex-col md:flex-row gap-4 mb-8 max-w-3xl mx-auto">
-            <div className="flex-1 flex items-center gap-2 glass rounded-2xl px-4 py-3">
-              <Search className="w-5 h-5 text-primary" />
-              <input
-                value={searchQuery}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Cari berdasarkan nama atau kode produk..."
-                className="flex-1 bg-transparent outline-none text-dark placeholder:text-dark/40"
+          <div className="mx-auto mb-8 flex max-w-3xl flex-col gap-3 md:flex-row">
+            <div className="relative flex-1">
+              <Search
+                className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-faint"
+                aria-hidden="true"
               />
+              <label htmlFor="menu-search" className="sr-only">
+                Cari produk
+              </label>
+              <input
+                id="menu-search"
+                type="search"
+                value={draft}
+                onChange={(e) => {
+                  dirty.current = true;
+                  setDraft(e.target.value);
+                }}
+                placeholder="Cari nama atau kode produk…"
+                enterKeyHint="search"
+                className="input pl-11 pr-11"
+              />
+              {draft && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    dirty.current = true;
+                    setDraft("");
+                  }}
+                  className="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
+                  aria-label="Hapus pencarian"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
             </div>
-            <div className="flex items-center gap-2 glass rounded-2xl px-4 py-3">
-              <SlidersHorizontal className="w-5 h-5 text-primary" />
+
+            <div className="relative md:w-56">
+              <SlidersHorizontal
+                className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-faint"
+                aria-hidden="true"
+              />
+              <label htmlFor="menu-sort" className="sr-only">
+                Urutkan produk
+              </label>
               <select
+                id="menu-sort"
                 value={sort}
                 onChange={(e) => setSort(e.target.value)}
-                className="bg-transparent outline-none text-dark cursor-pointer text-sm"
+                className="input cursor-pointer appearance-none pl-11 pr-9"
               >
                 {sortOptions.map((o) => (
-                  <option key={o.id} value={o.id} className="bg-cream">
+                  <option key={o.id} value={o.id}>
                     {o.label}
                   </option>
                 ))}
@@ -105,37 +154,58 @@ export default function Menu() {
             </div>
           </div>
 
-          {/* Category filter */}
-          <div className="flex flex-wrap justify-center gap-2 mb-10">
-            {categories.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => setCat(c.id)}
-                className={`px-4 py-2 rounded-full text-sm transition-all ${
-                  activeCat === c.id
-                    ? "bg-primary text-dark font-semibold shadow-glow"
-                    : "glass text-dark/70 hover:text-primary hover:border-primary/40"
-                }`}
-              >
-                {c.label}
-              </button>
-            ))}
+          <div
+            role="group"
+            aria-label="Filter kategori"
+            className="mb-10 flex flex-wrap justify-center gap-2"
+          >
+            {categories.map((c) => {
+              const on = activeCat === c.id;
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setCat(c.id)}
+                  aria-pressed={on}
+                  className={`min-h-[40px] rounded-full border px-4 py-2 text-sm transition-colors duration-120 ${
+                    on
+                      ? "border-accent bg-accent-soft font-semibold text-ink"
+                      : "border-line bg-surface text-ink-muted hover:border-accent-soft hover:text-ink"
+                  }`}
+                >
+                  {c.label}
+                </button>
+              );
+            })}
           </div>
 
-          {/* Products */}
-          {filtered.length === 0 ? (
-            <div className="text-center py-20">
-              <p className="text-dark/60">Produk tidak ditemukan.</p>
+          <p className="mb-5 text-sm text-ink-muted" aria-live="polite">
+            Menampilkan {filteredCount} dari {products.length} produk
+          </p>
+
+          {filteredCount === 0 ? (
+            <div className="card mx-auto max-w-md px-6 py-14 text-center">
+              <p className="font-serif text-xl font-semibold text-ink">
+                Produk tidak ditemukan
+              </p>
+              <p className="mt-2 text-sm text-ink-muted">
+                Coba kata kunci lain, atau hubungi kami untuk request custom.
+              </p>
+              <button type="button" onClick={clearAll} className="btn-outline mt-6">
+                Reset filter
+              </button>
             </div>
           ) : (
-            <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <ul className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
               {filtered.map((p, i) => (
-                <ProductCard key={p.id} product={p} index={i} />
+                <li key={p.id} className="h-full">
+                  <ProductCard product={p} index={i} />
+                </li>
               ))}
-            </motion.div>
+            </ul>
           )}
         </div>
-      </section>
+      </Tilt>
     </PageTransition>
   );
 }

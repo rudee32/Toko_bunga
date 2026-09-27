@@ -1,113 +1,133 @@
 import { motion } from "framer-motion";
-import { BadgePercent, Sparkles, Ticket, QrCode } from "lucide-react";
+import { QrCode, MessageCircle, ArrowRight } from "lucide-react";
 import PageTransition from "../components/PageTransition";
+import Tilt from "../components/Tilt";
 import SectionHeading from "../components/SectionHeading";
 import ProductCard from "../components/ProductCard";
-import PetalRain from "../three/PetalRain";
-import { products } from "../data/products";
+import { products, formatRupiah } from "../data/products";
+import { WHATSAPP_NUMBER } from "../utils/constants";
 
-const promoBanners = [
-  {
-    icon: BadgePercent,
-    title: "Diskon Spesial",
-    desc: "Hemat hingga 20% untuk rangkaian bunga papan pilihan di bulan ini.",
-  },
-  {
-    icon: Sparkles,
-    title: "New Collection",
-    desc: "Rangkaian hand bouquet terbaru dengan desain elegan dan modern.",
-  },
-  {
-    icon: Ticket,
-    title: "Paket Hemat",
-    desc: "Paket lengkap bunga papan + standing untuk kebutuhan acara Anda.",
-  },
-];
+const chatUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
+  "Halo Sekar Floristt, saya ingin tanya harga promo yang sedang berjalan."
+)}`;
+
+// Only real, data-backed offers: a product qualifies if it has a strike-through
+// price in the catalogue. No invented "hemat 20%" banners.
+const promoProducts = products.filter((p) => p.oldPrice);
+
+const discount = (p) =>
+  p.oldPrice ? Math.round((1 - p.price / p.oldPrice) * 100) : 0;
 
 export default function Promo() {
-  const promoProducts = products.filter((p) => p.badge || p.oldPrice).slice(0, 6);
-  const qris = products[10]; // just a placeholder reference
-
   return (
     <PageTransition>
-      <section className="relative pt-28 pb-20">
-        <PetalRain count={10} />
+      <Tilt className="pb-20 pt-28 md:pt-32">
         <div className="container-x">
           <SectionHeading
-            title="Promo Spesial"
-            subtitle="Jangan lewatkan penawaran spesial dan diskon menarik dari Sekar Floristt."
+            title="Promo"
+            subtitle="Produk yang sedang turun harga. Harga dan ketersediaan mengikuti stok yang ada."
           />
 
-          {/* Banners */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
-            {promoBanners.map((b, i) => (
-              <motion.div
-                key={b.title}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
-                whileHover={{ y: -6 }}
-                className="glass rounded-3xl p-8 text-center border border-gold/20 hover:border-gold/40 transition-all"
+          {promoProducts.length === 0 ? (
+            <div className="card mx-auto max-w-md px-6 py-14 text-center">
+              <p className="font-serif text-xl font-semibold text-ink">
+                Belum ada promo aktif
+              </p>
+              <p className="mt-2 text-sm text-ink-muted">
+                Tanya langsung lewat WhatsApp untuk penawaran terbaru.
+              </p>
+              <a
+                href={chatUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-primary mt-6"
               >
-                <div className="w-16 h-16 mx-auto rounded-2xl bg-gold/15 border border-gold/30 flex items-center justify-center mb-4 animate-float">
-                  <b.icon className="w-8 h-8 text-gold" />
-                </div>
-                <h3 className="font-serif italic text-2xl font-semibold mb-2">
-                  {b.title}
-                </h3>
-                <p className="text-sm text-dark/60">{b.desc}</p>
-              </motion.div>
-            ))}
-          </div>
+                Tanya promo
+              </a>
+            </div>
+          ) : (
+            <ul className="grid grid-cols-2 gap-3 pt-2 sm:gap-6 lg:grid-cols-3">
+              {promoProducts.map((p, i) => (
+                <li key={p.id} className="relative h-full">
+                  <span className="absolute -top-2 left-3 z-20 rounded-full bg-danger px-2.5 py-0.5 text-[11px] font-semibold text-cream">
+                    Hemat {discount(p)}%
+                  </span>
+                  <ProductCard product={p} index={i} />
+                </li>
+              ))}
+            </ul>
+          )}
 
-          {/* QRIS */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="relative overflow-hidden rounded-3xl border border-primary/30 p-8 md:p-12 mb-16 flex flex-col md:flex-row items-center gap-8 bg-gradient-to-r from-white via-cream to-white"
-          >
-            <div className="absolute -top-24 -left-24 w-72 h-72 rounded-full bg-primary/10 blur-3xl" />
-            <div className="flex-1 text-center md:text-left">
-              <div className="flex items-center justify-center md:justify-start gap-2 mb-3">
-                <QrCode className="w-7 h-7 text-primary" />
-                <span className="text-sm font-semibold text-primary uppercase tracking-widest">
-                  Pembayaran Mudah
+          {promoProducts.length > 0 && (
+            <p className="mt-8 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center text-sm text-ink-muted">
+              <span>
+                Total hemat promo saat ini:{" "}
+                <span className="font-medium text-ink tabular-nums">
+                  {formatRupiah(
+                    promoProducts.reduce(
+                      (sum, p) => sum + (p.oldPrice - p.price),
+                      0
+                    )
+                  )}
                 </span>
-              </div>
-              <h2 className="font-serif italic text-3xl md:text-4xl font-semibold mb-3">
-                Bayar pakai <span className="text-gradient">QRIS</span>
+              </span>
+              <a
+                href={chatUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 font-medium text-accent transition-colors hover:underline"
+              >
+                Tanya promo lain
+                <ArrowRight className="h-4 w-4" />
+              </a>
+            </p>
+          )}
+
+          <motion.div
+            initial={{ y: 16 }}
+            whileInView={{ y: 0 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.5 }}
+            className="card mt-16 flex flex-col items-center gap-8 px-6 py-8 md:flex-row md:justify-between md:px-10"
+          >
+            <div className="text-center md:text-left">
+              <h2 className="flex items-center justify-center gap-2 font-serif text-2xl font-semibold text-ink md:justify-start">
+                <QrCode className="h-6 w-6 text-accent" aria-hidden="true" />
+                Bayar dengan QRIS
               </h2>
-              <p className="text-dark/70 max-w-md">
-                Pembayaran kini semakin mudah dengan QRIS. Scan, bayar, dan pesanan
-                Anda langsung diproses.
+              <p className="mt-2 max-w-sm leading-relaxed text-ink-muted">
+                Scan kode QRIS di toko, atau transfer dan konfirmasi pesanan lewat
+                WhatsApp.
               </p>
             </div>
             <div className="shrink-0">
-              <div className="w-48 h-48 rounded-2xl bg-white p-3 flex items-center justify-center">
+              <div className="rounded-card border border-line bg-cream p-3">
                 <img
                   src="/img/products/qris.jpg"
-                  alt="QRIS Sekar Floristt"
-                  className="w-full h-full object-contain"
+                  alt="Kode QRIS untuk pembayaran di Sekar Floristt"
+                  width={557}
+                  height={550}
+                  loading="lazy"
+                  decoding="async"
+                  className="h-40 w-40 object-contain"
                 />
               </div>
-              <p className="text-center text-xs text-dark/50 mt-2">QRIS Sekar Floristt</p>
             </div>
           </motion.div>
 
-          {/* Promo products */}
-          <h2 className="font-serif italic text-3xl md:text-4xl font-semibold text-center mb-10">
-            Produk <span className="text-primary">Promo</span>
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {promoProducts.map((p, i) => (
-              <ProductCard key={p.id} product={p} index={i} />
-            ))}
+          <div className="mt-10 text-center">
+            <a
+              href={chatUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="btn-dark"
+            >
+              <MessageCircle className="h-5 w-5" />
+              Tanya promo via WhatsApp
+            </a>
           </div>
         </div>
-      </section>
+      </Tilt>
     </PageTransition>
   );
 }

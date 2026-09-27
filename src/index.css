@@ -3,66 +3,210 @@
 @tailwind utilities;
 
 @layer base {
+  /* Single source of truth for the palette. Consumed by tailwind.config.js as
+     `rgb(var(--c-x) / <alpha-value>)`, and directly by the raw CSS below. */
+  :root {
+    --c-cream: 250 246 241;
+    --c-surface: 255 253 251;
+    --c-surface-2: 243 237 229;
+    --c-ink: 26 26 24;
+    --c-ink-muted: 110 106 102;
+    --c-ink-subtle: 90 86 82;
+    --c-ink-faint: 152 146 139;
+    --c-accent: 125 98 68;
+    --c-accent-soft: 173 142 112;
+    --c-accent-light: 196 169 140;
+    --c-gold: 138 104 20;
+    --c-wa: 21 128 61;
+    --c-danger: 190 46 46;
+    --c-line: 231 223 212;
+    --c-forest: 47 79 63;
+  }
+
   html {
     scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
   }
+
   body {
-    @apply bg-cream text-dark font-sans antialiased;
-    overflow-x: hidden;
+    @apply bg-cream text-ink font-sans antialiased;
+    /* `clip` rather than `hidden`: it contains horizontal overflow without
+       turning <body> into a scroll container, so `position: sticky` and
+       `position: fixed` descendants keep working. */
+    overflow-x: clip;
+    -webkit-tap-highlight-color: transparent;
   }
+
   ::selection {
-    background: rgba(173, 142, 112, 0.4);
+    background: rgb(var(--c-accent-soft) / 0.3);
   }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-accent ring-offset-2 ring-offset-cream;
+  }
+
   ::-webkit-scrollbar {
     width: 10px;
   }
   ::-webkit-scrollbar-track {
-    background: #e8e2da;
+    background: rgb(var(--c-surface-2));
   }
   ::-webkit-scrollbar-thumb {
-    background: #ad8e70;
+    background: rgb(var(--c-accent-light));
     border-radius: 10px;
   }
-  .font-serif {
-    font-family: "Cormorant Garamond", serif;
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--c-accent-soft));
+  }
+
+  /* Never let an image or a long product name blow out the layout. */
+  img {
+    max-width: 100%;
+    height: auto;
   }
 }
 
 @layer components {
   .container-x {
-    @apply max-w-7xl mx-auto px-5 md:px-8;
+    @apply mx-auto w-full max-w-7xl px-5 md:px-8;
   }
+
+  /* Frosted panels are reserved for chrome that floats over page content:
+     the scrolled navbar and drawer overlays. Cards use flat surfaces. */
   .glass {
-    @apply bg-white/70 backdrop-blur-md border border-dark/10;
+    @apply border border-line bg-cream/85 backdrop-blur-md;
   }
-  .input-glass {
-    @apply bg-white/70 border border-dark/10 rounded-xl px-4 py-3 text-sm text-dark placeholder:text-dark/40 outline-none focus:border-primary/60 transition-colors;
+
+  .card {
+    @apply rounded-card border border-line bg-surface;
   }
+
+  .input {
+    @apply w-full rounded-card border border-line bg-surface px-4 py-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-faint focus:border-accent-soft;
+  }
+
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-dark transition-all duration-300 hover:bg-primary-light hover:shadow-glow;
+    @apply inline-flex min-h-[44px] items-center justify-center gap-2 rounded-card bg-accent-soft px-6 py-3 text-sm font-semibold text-ink transition-colors duration-120 hover:bg-accent-light;
   }
+
+  .btn-dark {
+    @apply inline-flex min-h-[44px] items-center justify-center gap-2 rounded-card bg-ink px-6 py-3 text-sm font-semibold text-cream transition-colors duration-120 hover:bg-ink/85;
+  }
+
+  .btn-outline {
+    @apply inline-flex min-h-[44px] items-center justify-center gap-2 rounded-card border border-line bg-surface px-5 py-2.5 text-sm font-semibold text-ink transition-colors duration-120 hover:border-accent-soft hover:bg-surface-2;
+  }
+
+  .btn-ghost {
+    @apply inline-flex min-h-[44px] items-center justify-center gap-2 rounded-card px-5 py-2.5 text-sm font-semibold text-ink-muted transition-colors duration-120 hover:bg-surface-2 hover:text-ink;
+  }
+
+  /* Compact variant. Exists as its own class rather than as `min-h-0 px-3 py-2`
+     overrides sprinkled on call sites: those rely on the utilities layer winning
+     over the components layer, which is correct today and silently breakable. */
+  /* Tight enough to fit two side by side inside a 158px product card, while
+     keeping a 36px minimum tap target now that the label is hidden there. */
+  .btn-sm {
+    @apply min-h-9 gap-1.5 rounded-chip px-2.5 py-1.5 text-xs sm:min-h-0 sm:px-3 sm:py-2;
+  }
+
+  .btn-icon {
+    @apply grid h-11 w-11 shrink-0 place-items-center rounded-full text-ink-muted transition-colors duration-120 hover:bg-surface-2 hover:text-ink;
+  }
+
   .section-title {
-    @apply text-3xl md:text-5xl font-semibold;
+    @apply font-serif text-3xl font-semibold leading-tight text-ink md:text-[2.75rem];
   }
+
   .section-sub {
-    @apply text-dark/60 max-w-2xl mx-auto;
+    @apply text-ink-muted;
   }
-  .text-gradient {
-    @apply bg-gradient-to-r from-primary via-primary-light to-gold bg-clip-text text-transparent;
+
+  .eyebrow {
+    @apply text-xs font-medium uppercase tracking-[0.22em] text-accent;
+  }
+
+  /* Horizontal scroller for overflowing media (gallery thumbnails). */
+  .scroll-x {
+    @apply flex gap-3 overflow-x-auto pb-2;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
   }
 }
 
 @layer utilities {
-  .perspective-1000 {
-    perspective: 1000px;
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .mb-safe {
+    margin-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  /* Positions an element above the home indicator on notched devices. */
+  .bottom-safe {
+    bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  }
+  .right-safe {
+    right: calc(1rem + env(safe-area-inset-right, 0px));
   }
   .preserve-3d {
     transform-style: preserve-3d;
   }
-  .backface-hidden {
-    backface-visibility: hidden;
+  .text-balance {
+    text-wrap: balance;
   }
-  .text-shadow {
-    text-shadow: 0 4px 30px rgba(255, 255, 255, 0.8);
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Loading placeholder: a moving sheen, frozen entirely for reduced motion.
+   The keyframes live here rather than in tailwind.config.js because nothing in
+   the markup uses an `animate-shimmer` utility — Tailwind would purge the
+   keyframes while keeping the raw `.skeleton` rule that references them. */
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: rgb(var(--c-surface-2));
+  border-radius: 4px;
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(var(--c-surface) / 0.7),
+    transparent
+  );
+  animation: shimmer 1.6s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .skeleton::after {
+    display: none;
   }
 }

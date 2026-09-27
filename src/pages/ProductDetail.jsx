@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useParams, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ChevronLeft,
@@ -8,204 +8,305 @@ import {
   MessageCircle,
   Minus,
   Plus,
-  BadgeCheck,
   Truck,
-  RefreshCcw,
+  Palette,
+  MessageSquareQuote,
 } from "lucide-react";
 import PageTransition from "../components/PageTransition";
-import StarRating from "../components/StarRating";
+import RichText from "../components/RichText";
 import ProductCard from "../components/ProductCard";
+import SectionHeading from "../components/SectionHeading";
 import { getProduct, products, formatRupiah } from "../data/products";
 import { useCartStore, useWishlistStore } from "../store/cartStore";
 import { openWhatsApp } from "../utils/constants";
 
+const assurances = [
+  {
+    icon: Truck,
+    title: "Pengiriman",
+    text: "Yogyakarta dan sekitarnya",
+  },
+  {
+    icon: Palette,
+    title: "Request warna",
+    text: "Disesuaikan sesuai stok",
+  },
+  {
+    icon: MessageSquareQuote,
+    title: "Tulisan papan",
+    text: "Bisa request kalimat",
+  },
+];
+
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const product = getProduct(id);
-  const [qty, setQty] = useState(1);
+
   const add = useCartStore((s) => s.add);
   const openCart = useCartStore((s) => s.open);
-  const wishlistIds = useWishlistStore((s) => s.ids);
+  const isWish = useWishlistStore((s) => s.ids.includes(product?.id));
   const toggleWishlist = useWishlistStore((s) => s.toggle);
-  const isWish = wishlistIds.includes(Number(id));
+
+  // Both of these are per-product state: without an explicit reset, going
+  // from /menu/1 to /menu/2 carries a quantity of 3 and a stale gallery index
+  // over to a completely different product.
+  const [qty, setQty] = useState(1);
   const [activeImg, setActiveImg] = useState(0);
+  useEffect(() => {
+    setQty(1);
+    setActiveImg(0);
+  }, [id]);
+
+  useEffect(() => {
+    if (product) document.title = `${product.name} — Sekar Floristt`;
+  }, [product]);
 
   if (!product) {
     return (
-      <div className="pt-40 text-center">
-        <p className="text-dark/60">Produk tidak ditemukan.</p>
-        <Link to="/menu" className="btn-primary mt-4">Kembali ke Katalog</Link>
+      <div className="grid min-h-dvh place-items-center px-6 pt-28 text-center">
+        <div>
+          <h1 className="font-serif text-3xl font-semibold text-ink">
+            Produk tidak ditemukan
+          </h1>
+          <p className="mt-2 text-ink-muted">
+            Produk ini mungkin sudah tidak tersedia.
+          </p>
+          <Link to="/menu" className="btn-primary mt-6">
+            Kembali ke Katalog
+          </Link>
+        </div>
       </div>
     );
   }
 
-  const gallery = product.gallery || [product.img];
-  const related = products.filter(
-    (p) => p.category === product.category && p.id !== product.id
-  ).slice(0, 3);
+  const gallery = product.gallery?.length ? product.gallery : [product.img];
+  const current = Math.min(activeImg, gallery.length - 1);
+  const related = products
+    .filter((p) => p.category === product.category && p.id !== product.id)
+    .slice(0, 4);
 
-  const handleAdd = () => {
-    add(product, qty);
-    openCart();
+  // `navigate(-1)` with no history entry leaves the site entirely.
+  const goBack = () => {
+    if (window.history.length > 1 && location.key !== "default") navigate(-1);
+    else navigate("/menu");
   };
 
-  const handleWA = () => {
+  const handleWA = () =>
     openWhatsApp(
       `Halo Sekar Floristt, saya ingin memesan:\n${product.name} (${product.code}) x${qty}\nTotal: ${formatRupiah(product.price * qty)}`
     );
-  };
 
   return (
     <PageTransition>
-      <div className="pt-24 pb-20">
+      <div className="pb-20 pt-28 md:pt-32">
         <div className="container-x">
           <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-dark/60 hover:text-primary mb-6 transition-colors"
+            type="button"
+            onClick={goBack}
+            className="btn-ghost -ml-2 mb-6"
           >
-            <ChevronLeft className="w-5 h-5" />
+            <ChevronLeft className="h-5 w-5" />
             Kembali
           </button>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-            {/* Gallery */}
+          <div className="grid gap-10 lg:grid-cols-2 lg:gap-14">
             <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              animate={{ opacity: 1, x: 0 }}
+              initial={{ y: 16 }}
+              animate={{ y: 0 }}
+              transition={{ duration: 0.45 }}
             >
-              <div className="rounded-3xl overflow-hidden glass relative aspect-square">
+              {/* 3:4 matches the seven portrait product photos (0.73-0.77).
+                  A square frame cropped `object-cover` to a 562x1000 source
+                  by roughly 44% of its height, cutting the tops of the
+                  flowers and the vase. The single landscape shot
+                  (`table.jpg`, 1000x750) loses a little width here, which is
+                  the cheaper trade than slicing the bouquets. */}
+              <div className="card relative aspect-[3/4] overflow-hidden">
                 {product.badge && (
-                  <span className="absolute top-4 left-4 z-10 px-3 py-1 text-xs font-semibold bg-primary text-dark rounded-full">
+                  <span className="absolute left-4 top-4 z-10 rounded-full bg-ink px-3 py-1 text-[11px] font-semibold tracking-wide text-cream">
                     {product.badge}
                   </span>
                 )}
-                <motion.img
-                  key={activeImg}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  src={gallery[activeImg]}
+                <img
+                  key={current}
+                  src={gallery[current]}
                   alt={product.name}
-                  className="w-full h-full object-cover"
+                  width={750}
+                  height={1000}
+                  loading="eager"
+                  decoding="async"
+                  className="h-full w-full object-cover"
                 />
               </div>
+
               {gallery.length > 1 && (
-                <div className="flex gap-3 mt-4">
-                  {gallery.map((g, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setActiveImg(i)}
-                      className={`w-20 h-20 rounded-xl overflow-hidden border-2 transition-all ${
-                        activeImg === i
-                          ? "border-primary"
-                          : "border-transparent opacity-60 hover:opacity-100"
-                      }`}
-                    >
-                      <img src={g} alt="" className="w-full h-full object-cover" />
-                    </button>
+                <ul className="scroll-x mt-4 no-scrollbar" aria-label="Galeri produk">
+                  {gallery.map((src, i) => (
+                    <li key={src} className="shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setActiveImg(i)}
+                        aria-label={`Lihat gambar ${i + 1} dari ${gallery.length}`}
+                        aria-current={i === current}
+                        className={`h-20 w-20 overflow-hidden rounded-chip border-2 transition-[border-color,opacity] duration-120 ${
+                          i === current
+                            ? "border-accent"
+                            : "border-transparent opacity-60 hover:opacity-100"
+                        }`}
+                      >
+                        <img
+                          src={src}
+                          alt=""
+                          width={80}
+                          height={80}
+                          loading="lazy"
+                          decoding="async"
+                          className="h-full w-full object-cover"
+                        />
+                      </button>
+                    </li>
                   ))}
-                </div>
+                </ul>
               )}
             </motion.div>
 
-            {/* Info */}
             <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 }}
+              initial={{ y: 16 }}
+              animate={{ y: 0 }}
+              transition={{ duration: 0.45, delay: 0.08 }}
+              className="lg:sticky lg:top-28 lg:self-start"
             >
-              <div className="flex items-center gap-2 text-sm text-dark/50 mb-3">
-                <span className="px-2 py-0.5 rounded bg-primary/20 text-primary">
-                  {product.code}
-                </span>
-                <StarRating rating={product.rating} />
-              </div>
-              <h1 className="font-serif italic text-4xl md:text-5xl font-semibold mb-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-ink-faint">
+                {product.code}
+              </p>
+              <h1 className="mt-2 font-serif text-3xl font-semibold leading-tight text-balance md:text-4xl">
                 {product.name}
               </h1>
-              <p className="text-dark/70 leading-relaxed mb-6">
-                {product.description}
-              </p>
 
-              <div className="flex items-center gap-3 mb-6">
-                <span className="font-serif text-3xl font-semibold text-primary">
+              <div className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <span className="font-serif text-3xl font-semibold text-accent tabular-nums">
                   {formatRupiah(product.price)}
                 </span>
                 {product.oldPrice && (
-                  <span className="text-lg text-dark/40 line-through">
+                  <span className="text-base text-ink-faint line-through tabular-nums">
                     {formatRupiah(product.oldPrice)}
                   </span>
                 )}
               </div>
 
-              <div className="space-y-4">
+              <RichText
+                text={product.description}
+                className="mt-6 leading-relaxed text-ink-muted"
+              />
+
+              {product.sizes?.length > 0 && (
+                <p className="mt-6 text-sm text-ink-muted">
+                  Ukuran tersedia:{" "}
+                  <span className="font-medium text-ink">
+                    {product.sizes.join(" · ")}
+                  </span>
+                </p>
+              )}
+
+              <div className="mt-8 space-y-4">
                 <div className="flex items-center gap-4">
-                  <span className="text-dark/70 text-sm">Jumlah:</span>
-                  <div className="flex items-center gap-3 glass rounded-full px-3 py-2">
+                  <span id="qty-label" className="text-sm text-ink-muted">
+                    Jumlah
+                  </span>
+                  <div
+                    className="inline-flex items-center gap-1 rounded-full border border-line bg-surface px-1.5 py-1"
+                    role="group"
+                    aria-labelledby="qty-label"
+                  >
                     <button
-                      onClick={() => setQty(Math.max(1, qty - 1))}
-                      className="text-dark/70 hover:text-primary"
+                      type="button"
+                      onClick={() => setQty((q) => Math.max(1, q - 1))}
+                      disabled={qty <= 1}
+                      className="grid h-9 w-9 place-items-center rounded-full text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink disabled:opacity-30"
+                      aria-label="Kurangi jumlah"
                     >
-                      <Minus className="w-5 h-5" />
+                      <Minus className="h-4 w-4" />
                     </button>
-                    <span className="w-8 text-center font-semibold">{qty}</span>
+                    <span className="w-8 text-center font-semibold tabular-nums">
+                      {qty}
+                    </span>
                     <button
-                      onClick={() => setQty(qty + 1)}
-                      className="text-dark/70 hover:text-primary"
+                      type="button"
+                      onClick={() => setQty((q) => q + 1)}
+                      className="grid h-9 w-9 place-items-center rounded-full text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
+                      aria-label="Tambah jumlah"
                     >
-                      <Plus className="w-5 h-5" />
+                      <Plus className="h-4 w-4" />
                     </button>
                   </div>
+                  <span className="text-sm text-ink-muted tabular-nums">
+                    = {formatRupiah(product.price * qty)}
+                  </span>
                 </div>
 
                 <div className="flex flex-wrap gap-3">
-                  <button onClick={handleAdd} className="btn-primary flex-1 min-w-[200px]">
-                    <ShoppingCart className="w-5 h-5" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      add(product, qty);
+                      openCart();
+                    }}
+                    className="btn-primary flex-1"
+                  >
+                    <ShoppingCart className="h-5 w-5" />
                     Tambah ke Keranjang
                   </button>
                   <button
+                    type="button"
                     onClick={() => toggleWishlist(product.id)}
-                    className="p-3 rounded-full glass text-dark hover:text-red-400 transition-colors"
-                    aria-label="Favorit"
+                    aria-pressed={isWish}
+                    aria-label={
+                      isWish
+                        ? "Hapus dari favorit"
+                        : "Simpan ke favorit"
+                    }
+                    className="btn-outline px-4"
                   >
-                    <Heart className={`w-5 h-5 ${isWish ? "fill-red-500 text-red-500" : ""}`} />
+                    <Heart
+                      className={`h-5 w-5 ${isWish ? "fill-danger text-danger" : ""}`}
+                    />
                   </button>
                 </div>
 
-                <button onClick={handleWA} className="w-full rounded-full glass py-3 text-sm font-semibold text-green-600 hover:bg-green-500/10 transition-colors flex items-center justify-center gap-2">
-                  <MessageCircle className="w-5 h-5" />
+                <button
+                  type="button"
+                  onClick={handleWA}
+                  className="btn-dark w-full"
+                >
+                  <MessageCircle className="h-5 w-5" />
                   Pesan Langsung via WhatsApp
                 </button>
               </div>
 
-              <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="glass rounded-2xl p-4 text-center">
-                  <Truck className="w-6 h-6 text-primary mx-auto mb-2" />
-                  <p className="text-xs text-dark/60">Pengiriman Yogyakarta & sekitarnya</p>
-                </div>
-                <div className="glass rounded-2xl p-4 text-center">
-                  <RefreshCcw className="w-6 h-6 text-primary mx-auto mb-2" />
-                  <p className="text-xs text-dark/60">Bisa request sesuai keinginan</p>
-                </div>
-                <div className="glass rounded-2xl p-4 text-center">
-                  <BadgeCheck className="w-6 h-6 text-primary mx-auto mb-2" />
-                  <p className="text-xs text-dark/60">Kualitas bunga terbaik</p>
-                </div>
-              </div>
+              <ul className="mt-8 grid gap-3 sm:grid-cols-3">
+                {assurances.map(({ icon: Icon, title, text }) => (
+                  <li key={title} className="card px-4 py-4 text-center">
+                    <Icon className="mx-auto mb-2 h-5 w-5 text-accent" aria-hidden="true" />
+                    <p className="text-sm font-medium text-ink">{title}</p>
+                    <p className="mt-0.5 text-xs text-ink-muted">{text}</p>
+                  </li>
+                ))}
+              </ul>
             </motion.div>
           </div>
 
-          {/* Related */}
           {related.length > 0 && (
             <div className="mt-20">
-              <h2 className="font-serif italic text-3xl font-semibold text-center mb-8">
-                Produk <span className="text-primary">Terkait</span>
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <SectionHeading title="Produk Terkait" align="center" />
+              <ul className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-4">
                 {related.map((p, i) => (
-                  <ProductCard key={p.id} product={p} index={i} />
+                  <li key={p.id} className="h-full">
+                    <ProductCard product={p} index={i} />
+                  </li>
                 ))}
-              </div>
+              </ul>
             </div>
           )}
         </div>
