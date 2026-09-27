@@ -81,6 +81,12 @@
     @apply rounded-card border border-line bg-surface;
   }
 
+  /* Inverse surface. `border-ink/10` rather than `border-line`: the light
+     hairline reads as a glow once it sits on a dark fill. */
+  .card-dark {
+    @apply rounded-card border border-ink/10 bg-ink text-cream;
+  }
+
   .input {
     @apply w-full rounded-card border border-line bg-surface px-4 py-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-faint focus:border-accent-soft;
   }
@@ -91,6 +97,12 @@
 
   .btn-dark {
     @apply inline-flex min-h-[44px] items-center justify-center gap-2 rounded-card bg-ink px-6 py-3 text-sm font-semibold text-cream transition-colors duration-120 hover:bg-ink/85;
+  }
+
+  /* The light button is the primary action when it sits on .card-dark, so the
+     emphasis inverts along with the surface. */
+  .btn-invert {
+    @apply inline-flex min-h-[44px] items-center justify-center gap-2 rounded-card bg-cream px-6 py-3 text-sm font-semibold text-ink transition-colors duration-120 hover:bg-surface-2;
   }
 
   .btn-outline {

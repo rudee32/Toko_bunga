@@ -26,7 +26,7 @@ import {
  *   painted flat. Sections that carry a full-bleed background colour must not
  *   be wrapped, or the background stays level while its content tilts and the
  *   edge of the band shows. Every tinted surface in this app (search button,
- *   filter chips, the QRIS card) is a child, so it tilts along with the rest.
+ *   filter chips) is a child, so it tilts along with the rest.
  *
  * Not used on the hero: that section is `min-h-dvh` with `overflow-hidden`
  * around four absolutely positioned layers, and a foreshortened rotateX would

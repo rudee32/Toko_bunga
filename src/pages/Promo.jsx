@@ -1,19 +1,32 @@
 import { motion } from "framer-motion";
-import { QrCode, MessageCircle, ArrowRight } from "lucide-react";
+import { Sparkles, MessageCircle, ArrowRight } from "lucide-react";
 import PageTransition from "../components/PageTransition";
 import Tilt from "../components/Tilt";
 import SectionHeading from "../components/SectionHeading";
 import ProductCard from "../components/ProductCard";
-import { products, formatRupiah } from "../data/products";
+import CountUp from "../components/CountUp";
+import { products } from "../data/products";
 import { WHATSAPP_NUMBER } from "../utils/constants";
 
+// Two prefills, not one. Both links open WhatsApp, but "Tanya promo lain" is a
+// browsing question while the card below it is a conversion question, and the
+// shop can tell from the incoming message which one customers meant.
 const chatUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
   "Halo Sekar Floristt, saya ingin tanya harga promo yang sedang berjalan."
+)}`;
+
+const offerUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
+  "Halo Sekar Floristt, saya mau tanya promo khusus untuk pesanan saya."
 )}`;
 
 // Only real, data-backed offers: a product qualifies if it has a strike-through
 // price in the catalogue. No invented "hemat 20%" banners.
 const promoProducts = products.filter((p) => p.oldPrice);
+
+const totalSaving = promoProducts.reduce(
+  (sum, p) => sum + (p.oldPrice - p.price),
+  0
+);
 
 const discount = (p) =>
   p.oldPrice ? Math.round((1 - p.price / p.oldPrice) * 100) : 0;
@@ -58,73 +71,76 @@ export default function Promo() {
             </ul>
           )}
 
-          {promoProducts.length > 0 && (
-            <p className="mt-8 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center text-sm text-ink-muted">
-              <span>
-                Total hemat promo saat ini:{" "}
-                <span className="font-medium text-ink tabular-nums">
-                  {formatRupiah(
-                    promoProducts.reduce(
-                      (sum, p) => sum + (p.oldPrice - p.price),
-                      0
-                    )
-                  )}
-                </span>
+          <div className="mt-12 grid gap-4 md:mt-16 md:grid-cols-[1fr_20rem] md:items-stretch">
+            {promoProducts.length > 0 && (
+              <motion.div
+                initial={{ y: 16 }}
+                whileInView={{ y: 0 }}
+                viewport={{ once: true, margin: "-80px" }}
+                transition={{ duration: 0.5 }}
+                className="card relative overflow-hidden bg-surface-2 px-6 py-8 md:px-10 md:py-10"
+              >
+                {/* A flat tint read as a grey slab, so the wash gives the
+                    numeral something to sit on. Purely decorative. */}
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgb(var(--c-accent-soft)/0.4),transparent_70%)]"
+                />
+                <p className="eyebrow relative flex items-center gap-2">
+                  <Sparkles className="h-4 w-4" aria-hidden="true" />
+                  Total hemat promo
+                </p>
+                <p className="relative mt-3 font-serif text-4xl font-semibold leading-none tabular-nums text-accent sm:text-5xl">
+                  <CountUp value={totalSaving} />
+                </p>
+                <p className="relative mt-3 text-sm text-ink-muted">
+                  dari {promoProducts.length} produk yang sedang turun harga
+                </p>
+                {/* min-h keeps this a 44px target; as a bare text link it was
+                    well under that on touch. */}
+                <a
+                  href={chatUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="relative mt-3 inline-flex min-h-[44px] items-center gap-1 font-medium text-accent transition-colors hover:underline"
+                >
+                  Tanya promo lain
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </a>
+              </motion.div>
+            )}
+
+            <motion.div
+              initial={{ y: 16 }}
+              whileInView={{ y: 0 }}
+              viewport={{ once: true, margin: "-80px" }}
+              transition={{ duration: 0.5, delay: 0.08 }}
+              className={`card-dark px-6 py-8 md:px-8 md:py-10 ${
+                promoProducts.length > 0
+                  ? "md:col-start-2"
+                  : "md:col-start-1 md:mx-auto md:w-full md:max-w-md"
+              }`}
+            >
+              <span className="grid h-11 w-11 place-items-center rounded-full bg-cream/10 text-cream">
+                <MessageCircle className="h-5 w-5" aria-hidden="true" />
               </span>
+              <h2 className="mt-5 font-serif text-xl font-semibold text-cream md:text-2xl">
+                Tanya promo khusus
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-cream/70">
+                Punya pesanan besar atau tanggal tertentu? Ceritakan, kami siapkan
+                penawaran terpisah dari promo yang sedang berjalan.
+              </p>
               <a
-                href={chatUrl}
+                href={offerUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1 font-medium text-accent transition-colors hover:underline"
+                className="btn-invert mt-6 w-full justify-center"
               >
-                Tanya promo lain
-                <ArrowRight className="h-4 w-4" />
+                Tanya promo via WhatsApp
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </a>
-            </p>
-          )}
-
-          <motion.div
-            initial={{ y: 16 }}
-            whileInView={{ y: 0 }}
-            viewport={{ once: true, margin: "-80px" }}
-            transition={{ duration: 0.5 }}
-            className="card mt-16 flex flex-col items-center gap-8 px-6 py-8 md:flex-row md:justify-between md:px-10"
-          >
-            <div className="text-center md:text-left">
-              <h2 className="flex items-center justify-center gap-2 font-serif text-2xl font-semibold text-ink md:justify-start">
-                <QrCode className="h-6 w-6 text-accent" aria-hidden="true" />
-                Bayar dengan QRIS
-              </h2>
-              <p className="mt-2 max-w-sm leading-relaxed text-ink-muted">
-                Scan kode QRIS di toko, atau transfer dan konfirmasi pesanan lewat
-                WhatsApp.
-              </p>
-            </div>
-            <div className="shrink-0">
-              <div className="rounded-card border border-line bg-cream p-3">
-                <img
-                  src="/img/products/qris.jpg"
-                  alt="Kode QRIS untuk pembayaran di Sekar Floristt"
-                  width={557}
-                  height={550}
-                  loading="lazy"
-                  decoding="async"
-                  className="h-40 w-40 object-contain"
-                />
-              </div>
-            </div>
-          </motion.div>
-
-          <div className="mt-10 text-center">
-            <a
-              href={chatUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="btn-dark"
-            >
-              <MessageCircle className="h-5 w-5" />
-              Tanya promo via WhatsApp
-            </a>
+            </motion.div>
           </div>
         </div>
       </Tilt>
