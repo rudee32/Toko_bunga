@@ -164,7 +164,7 @@ export const products = [
     code: "SEWA",
     name: "Sewa Bunga Papan",
     category: "sewa",
-    price: 350000,
+    price: 500000,
     img: "/img/menu/sewapapan1.jpg",
     gallery: ["/img/menu/sewapapan1.jpg"],
     categoryLabels: ["sewa"],
