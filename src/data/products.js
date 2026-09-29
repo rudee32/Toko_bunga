@@ -30,7 +30,7 @@ export const products = [
     code: "PLU-120",
     name: "Bunga Papan Leter U",
     category: "papan",
-    price: 1200000,
+    price: 1250000,
     oldPrice: 1400000,
     img: "/img/menu/PLU-120.jpg",
     categoryLabels: ["papan", "selamat"],
